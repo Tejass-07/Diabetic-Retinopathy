@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Diabetic Retinopathy Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f4fbfa;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --accent-1:#13b07a;
+      --accent-2:#18a999;
+      --accent-3:#0b8f6a;
+      --danger:#d93a3a;
+      --glass: rgba(255,255,255,0.6);
+      --maxw:1100px;
+      --gap:24px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+      background: linear-gradient(180deg,#e9faf6 0%, var(--bg) 100%);
+      color:#0f172a;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:28px 12px 40px;
+      display:flex;
+      justify-content:center;
+    }
+
+    /* page wrapper */
+    .wrap{
+      width:100%;
+      max-width:var(--maxw);
+      padding-top:18px; /* always keep space at top */
+    }
+
+    /* header */
+    .header{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-bottom:var(--gap);
+    }
+    .logo{
+      width:56px; height:56px; border-radius:12px;
+      background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+      display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:1.05rem;
+      box-shadow: 0 8px 24px rgba(11,143,106,0.12);
+    }
+    .title{
+      display:flex; flex-direction:column;
+    }
+    .title h1{ margin:0; font-size:1.25rem; letter-spacing:-0.2px; }
+    .title p{ margin:0; font-size:0.9rem; color:var(--muted); }
+
+    /* grid */
+    .container{ display:grid; grid-template-columns: 1fr 420px; gap:20px; align-items:start; }
+    @media (max-width:980px){ .container{ grid-template-columns: 1fr; } }
+
+    .card{
+      background:var(--card);
+      border-radius:14px;
+      padding:16px;
+      box-shadow: 0 12px 30px rgba(19,55,56,0.06);
+      border: 1px solid rgba(10,30,28,0.03);
+    }
+
+    /* uploader */
+    .uploader{
+      border-radius:12px;
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      align-items:stretch;
+      border:1px dashed rgba(20,140,120,0.08);
+      background: linear-gradient(180deg, rgba(19,176,122,0.02), transparent);
+      transition: box-shadow .25s ease, transform .08s ease;
+    }
+    .uploader:hover{ box-shadow: 0 10px 30px rgba(11,143,106,0.06); transform: translateY(-3px); }
+    .uploader .controls{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .btn{
+      padding:10px 14px; border-radius:10px; border:none;
+      background:linear-gradient(180deg,var(--accent-1),var(--accent-2));
+      color:white; font-weight:700; cursor:pointer; box-shadow: 0 8px 22px rgba(24,169,153,0.12);
+    }
+    .btn.ghost{ background:transparent; color:var(--accent-3); border:1px solid rgba(11,143,106,0.08); box-shadow:none; }
+    .hint{ font-size:0.92rem; color:var(--muted); text-align:left; }
+
+    /* preview column */
+    .preview-col{ display:flex; flex-direction:column; gap:12px; align-items:stretch; }
+    .media-row{ display:flex; gap:12px; align-items:flex-start; justify-content:space-between; }
+    .media-panel{ flex:1; min-width:0; background:linear-gradient(180deg,#fff,#fbfffd); border-radius:10px; padding:10px; display:flex; align-items:center; justify-content:center; border:1px solid #eef7f3; min-height:150px; }
+    .media-panel img{ max-width:100%; max-height:340px; border-radius:8px; object-fit:contain; display:block; }
+
+    /* result block */
+    .result{
+      margin-top:6px;
+      padding:12px; border-radius:10px; text-align:center;
+      background: linear-gradient(180deg, rgba(15,97,86,0.03), rgba(255,255,255,0.0));
+      border: 1px solid rgba(11,143,106,0.06);
+      transition: transform .35s ease, opacity .35s ease;
+      opacity:0; transform: translateY(6px);
+    }
+    .result.show{ opacity:1; transform: translateY(0); }
+    .result .label{ font-weight:800; font-size:1.05rem; margin-bottom:6px; color:#063b36; }
+    .result .prob{ color:var(--muted); margin-bottom:8px; }
+    .progress{ width:100%; height:12px; background:#e9f5f1; border-radius:999px; overflow:hidden; border:1px solid rgba(0,0,0,0.03); }
+    .progress > i{ display:block; height:100%; background:linear-gradient(90deg,var(--accent-1),var(--accent-2)); width:0%; transition:width 600ms cubic-bezier(.2,.9,.2,1); }
+
+    /* class probabilities */
+    .chart { margin-top:12px; display:block; }
+    .class-list{ margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+    .class-item{ display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:10px; background:linear-gradient(180deg,#ffffff,#fbfffd); border:1px solid #eef7f3; }
+    .badge { font-weight:700; padding:6px 10px; border-radius:999px; color:white; font-size:0.85rem; }
+    .b-0{ background: linear-gradient(90deg,#10b981,#059669); } /* No DR */
+    .b-1{ background: linear-gradient(90deg,#84cc16,#65a30d); } /* Mild */
+    .b-2{ background: linear-gradient(90deg,#facc15,#eab308); color:#2b2b2b; } /* Moderate */
+    .b-3{ background: linear-gradient(90deg,#fb923c,#f97316); } /* Severe */
+    .b-4{ background: linear-gradient(90deg,#ef4444,#dc2626); } /* Proliferative */
+
+    .download{ display:flex; justify-content:center; gap:10px; margin-top:12px; }
+
+    /* loading overlay */
+    .loading-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background: rgba(0,0,0,0.3); z-index:9999; }
+    .spinner-box{ width:120px; height:120px; border-radius:12px; background: white; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; box-shadow: 0 12px 40px rgba(13,72,62,0.12); }
+    .lds-ring{ display:inline-block; position:relative; width:48px; height:48px; }
+    .lds-ring div{ box-sizing:border-box; display:block; position:absolute; width:40px; height:40px; margin:4px; border:4px solid var(--accent-1); border-radius:50%; animation:lds 1.2s cubic-bezier(.5,0,.5,1) infinite; border-color:var(--accent-1) transparent transparent transparent; }
+    .lds-ring div:nth-child(1){ animation-delay:-0.45s; } .lds-ring div:nth-child(2){ animation-delay:-0.3s; } .lds-ring div:nth-child(3){ animation-delay:-0.15s; }
+    @keyframes lds{ 0%{ transform: rotate(0deg);} 100%{ transform: rotate(360deg);} }
+
+    /* camera modal */
+    .camera-modal{ display:none; position:fixed; inset:0; z-index:2000; align-items:center; justify-content:center; background:rgba(0,0,0,0.55); }
+    .camera-panel{ width:92%; max-width:560px; background:white; border-radius:12px; padding:12px; box-shadow:0 16px 48px rgba(2,16,18,0.5); }
+
+    /* small devices */
+    @media (max-width:520px){
+      .media-row{ flex-direction:column; gap:10px; }
+      .container{ gap:14px; }
+      .camera-panel{ width:96%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="header">
+      <div class="logo">DR</div>
+      <div class="title">
+        <h1>Diabetic Retinopathy Predictor</h1>
+        <p>Upload a retinal image — model predicts DR stage and highlights model attention.</p>
+      </div>
+    </header>
+
+    <div class="container">
+      <!-- left: upload + info -->
+      <div class="card">
+        <div class="uploader" id="uploaderArea">
+          <!-- Form with patient name + camera -->
+          <form id="predictForm" class="controls" method="POST" enctype="multipart/form-data">
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <label class="btn" for="filePicker">Choose Image</label>
+              <input id="filePicker" type="file" name="file" accept="image/*" style="display:none" />
+              <button id="submitBtn" class="btn ghost" type="submit">Upload & Predict</button>
+              <button id="cameraBtn" type="button" class="btn">Use Camera</button>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:10px; align-items:center; flex-wrap:wrap;">
+              <input id="patientName" name="patient_name" type="text" placeholder="Patient name (optional)" style="flex:1; padding:10px; border-radius:8px; border:1px solid #e6f2ef;" />
+              <select id="patientSex" name="patient_sex" style="padding:10px; border-radius:8px; border:1px solid #e6f2ef;">
+                <option value="">Sex</option>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+                <option value="O">Other</option>
+              </select>
+            </div>
+            <div class="hint">Best: centered retina images. Accepted: JPG, PNG. Drag & drop supported below.</div>
+          </form>
+
+          <div style="height:8px"></div>
+
+          <div style="font-size:0.92rem; color:var(--muted)">
+            <strong>Features:</strong>
+            <ul style="margin:8px 0 0 18px; padding:0; color:var(--muted)">
+              <li>Probability/confidence score</li>
+              <li>Grad-CAM heatmap (jet colormap) or saliency fallback</li>
+              <li>Five-class classification (No DR → Proliferative DR)</li>
+              <li>Downloadable PDF report (includes patient name if provided)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- right: preview + heatmap + results -->
+      <div class="card preview-col">
+        <div class="media-row">
+          <div class="media-panel" aria-label="uploaded image">
+            {% if image_url %}
+              <img id="previewImg" src="{{ image_url }}" alt="Uploaded preview" />
+            {% else %}
+              <img id="previewImg" src="https://via.placeholder.com/420x280?text=Upload+an+image" alt="placeholder" />
+            {% endif %}
+          </div>
+
+          <div class="media-panel" aria-label="heatmap">
+            {% if heatmap_url %}
+              <img id="heatmapImg" src="{{ heatmap_url }}" alt="Grad-CAM heatmap" />
+            {% else %}
+              <div id="heatmapPlaceholder" style="color:var(--muted); text-align:center; padding:12px;">
+                <div style="font-weight:700; margin-bottom:6px;">Heatmap unavailable</div>
+                <div style="font-size:0.9rem;">Model attention will appear here after prediction.</div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div id="resultBox" class="result {% if prediction %}show{% endif %}">
+          {% if prediction %}
+            <div class="label">Prediction: {{ prediction }}</div>
+            {% if probability is not none %}
+              <div class="prob">Confidence: {{ (probability * 100) | round(2) }}%</div>
+              <div class="progress" aria-hidden="true"><i style="width: {{ (probability * 100) }}%"></i></div>
+            {% endif %}
+          {% else %}
+            <div class="label" style="color:var(--muted)">No prediction yet</div>
+            <div class="prob">Upload an image and click <strong>Upload & Predict</strong></div>
+          {% endif %}
+        </div>
+
+        {% if class_names and class_probs %}
+          <div class="card" style="margin-top:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-weight:700">Class probabilities</div>
+              {% if chart_url %}
+                <img src="{{ chart_url }}" alt="Class chart" style="height:54px; border-radius:8px; border:1px solid #eef7f3;" />
+              {% endif %}
+            </div>
+
+            <div class="class-list">
+              {% for i in range(class_names|length) %}
+                <div class="class-item">
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <div class="badge b-{{ i if i < 5 else 0 }}">{{ class_names[i] }}</div>
+                    <div style="font-size:0.95rem; color:var(--muted)">{{ class_names[i] }}</div>
+                  </div>
+                  <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                    <div style="font-weight:700">{{ (class_probs[i] * 100) | round(2) }}%</div>
+                    <div style="width:140px; margin-top:6px;">
+                      <div style="height:8px; background:#f1f8f7; border-radius:999px; overflow:hidden;">
+                        <div style="height:100%; background:linear-gradient(90deg,var(--accent-1),var(--accent-2)); width:{{ (class_probs[i] * 100) | round(2) }}%;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+
+            <div class="download">
+              {% if report_url %}
+                <a class="btn" href="{{ report_url }}" download>Download PDF Report</a>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Camera modal -->
+  <div class="camera-modal" id="cameraModal" role="dialog" aria-hidden="true">
+    <div class="camera-panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <strong>Camera</strong>
+        <div style="display:flex; gap:8px;">
+          <button id="closeCamera" class="btn ghost" style="padding:6px 8px;">Close</button>
+        </div>
+      </div>
+      <video id="cameraVideo" autoplay playsinline style="width:100%; border-radius:8px; background:#000;"></video>
+      <div style="display:flex; gap:8px; justify-content:center; margin-top:8px;">
+        <button id="snapBtn" class="btn">Capture</button>
+        <button id="useSnapBtn" class="btn ghost">Use Photo</button>
+      </div>
+      <canvas id="cameraCanvas" style="display:none;"></canvas>
+    </div>
+  </div>
+
+  <!-- Loading overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner-box">
+      <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+      <div style="font-weight:700">Analyzing…</div>
+      <div style="font-size:0.85rem; color:var(--muted)">This may take a few seconds on first run</div>
+    </div>
+  </div>
+
+  <script>
+    // Elements
+    const form = document.getElementById('predictForm');
+    const overlay = document.getElementById('loadingOverlay');
+    const fileInput = document.getElementById('filePicker');
+    const previewImg = document.getElementById('previewImg');
+    const heatmapImg = document.getElementById('heatmapImg');
+    const cameraBtn = document.getElementById('cameraBtn');
+    const cameraModal = document.getElementById('cameraModal');
+    const cameraVideo = document.getElementById('cameraVideo');
+    const cameraCanvas = document.getElementById('cameraCanvas');
+    const snapBtn = document.getElementById('snapBtn');
+    const useSnapBtn = document.getElementById('useSnapBtn');
+    const closeCamera = document.getElementById('closeCamera');
+    const uploaderArea = document.getElementById('uploaderArea');
+
+    // show loading overlay while form submits
+    form.addEventListener('submit', function(e){
+      overlay.style.display = 'flex';
+    });
+
+    // Standard file chooser preview
+    function onFileChosen(e){
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      previewImg.src = URL.createObjectURL(file);
+      if (heatmapImg) heatmapImg.src = '';
+    }
+    fileInput.addEventListener('change', onFileChosen);
+
+    // Drag & drop (attach to file input)
+    if (uploaderArea) {
+      uploaderArea.addEventListener('dragover', (ev) => { ev.preventDefault(); uploaderArea.style.boxShadow = '0 18px 40px rgba(11,143,106,0.08)'; });
+      uploaderArea.addEventListener('dragleave', (ev) => { uploaderArea.style.boxShadow = ''; });
+      uploaderArea.addEventListener('drop', (ev) => {
+        ev.preventDefault(); uploaderArea.style.boxShadow = '';
+        const files = ev.dataTransfer.files;
+        if (!files || files.length === 0) return;
+        fileInput.files = files;
+        fileInput.dispatchEvent(new Event('change'));
+      });
+    }
+
+    // ----- CAMERA logic (getUserMedia) -----
+    let localStream = null;
+    let lastCapturedBlob = null;
+
+    cameraBtn.addEventListener('click', async function(){
+      cameraModal.style.display = 'flex';
+      cameraModal.setAttribute('aria-hidden','false');
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+        cameraVideo.srcObject = localStream;
+        await cameraVideo.play();
+      } catch (err) {
+        alert('Could not open camera: ' + (err.message || err));
+        cameraModal.style.display = 'none';
+        cameraModal.setAttribute('aria-hidden','true');
+      }
+    });
+
+    closeCamera.addEventListener('click', () => {
+      stopCamera();
+      cameraModal.style.display = 'none';
+      cameraModal.setAttribute('aria-hidden','true');
+    });
+
+    snapBtn.addEventListener('click', () => {
+      const w = cameraVideo.videoWidth || 640;
+      const h = cameraVideo.videoHeight || 480;
+      cameraCanvas.width = w;
+      cameraCanvas.height = h;
+      const ctx = cameraCanvas.getContext('2d');
+      ctx.drawImage(cameraVideo, 0, 0, w, h);
+      cameraCanvas.toBlob((blob) => {
+        lastCapturedBlob = blob;
+        const url = URL.createObjectURL(blob);
+        previewImg.src = url;
+        if (heatmapImg) heatmapImg.src = '';
+      }, 'image/png', 0.95);
+    });
+
+    useSnapBtn.addEventListener('click', () => {
+      if (!lastCapturedBlob) { alert('Please capture a photo first.'); return; }
+      const patientName = (document.getElementById('patientName') && document.getElementById('patientName').value) || '';
+      const safePrefix = patientName ? patientName.trim().replace(/\s+/g,'_') + '_' : '';
+      const filename = safePrefix + 'capture_' + Date.now() + '.png';
+      const file = new File([lastCapturedBlob], filename, { type: 'image/png' });
+
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      fileInput.files = dt.files;
+      fileInput.dispatchEvent(new Event('change'));
+
+      stopCamera();
+      cameraModal.style.display = 'none';
+      cameraModal.setAttribute('aria-hidden','true');
+    });
+
+    function stopCamera(){
+      if (localStream) {
+        localStream.getTracks().forEach(t => t.stop());
+        localStream = null;
+      }
+      try { cameraVideo.srcObject = null; } catch(e){}
+      lastCapturedBlob = null;
+    }
+
+    // Smooth-scroll to result when prediction exists
+    {% if prediction %}
+    document.addEventListener('DOMContentLoaded', function(){
+      const resultEl = document.getElementById('resultBox');
+      if (!resultEl) return;
+      const offset = 18;
+      const rect = resultEl.getBoundingClientRect();
+      const y = window.pageYOffset + rect.top - offset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+      // animate progress
+      setTimeout(() => {
+        const prog = document.querySelectorAll('.progress > i');
+        prog.forEach(el => {
+          // width is already set inline by server
+          el.style.width = el.style.width || el.getAttribute('data-width') || '0%';
+        });
+      }, 250);
+    });
+    {% endif %}
+  </script>
+</body>
+</html>
